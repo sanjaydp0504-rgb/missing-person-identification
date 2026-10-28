@@ -1,0 +1,5 @@
+Flask
+Werkzeug
+Pillow
+numpy
+opencv-contrib-python-headless

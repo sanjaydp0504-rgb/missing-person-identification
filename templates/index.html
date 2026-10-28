@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Missing Person Identification</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #edf2f7;
+            margin: 0;
+            padding: 30px 15px;
+            color: #243247;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            margin-bottom: 22px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px #00000012;
+        }
+
+        h1, h2 {
+            color: #17365d;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            max-width: 100%;
+        }
+
+        input[type="text"] {
+            width: 270px;
+        }
+
+        button {
+            background: #1769aa;
+            color: white;
+            padding: 11px 17px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            background: #104e80;
+        }
+
+        .message {
+            padding: 12px;
+            background: #eff6ff;
+            border-left: 4px solid #1769aa;
+            border-radius: 4px;
+            line-height: 1.6;
+        }
+
+        .note {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .person {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 18px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .person:last-child {
+            border-bottom: none;
+        }
+
+        .person img {
+            width: 125px;
+            height: 145px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #dbe2ea;
+            background: #f1f5f9;
+        }
+
+        .details {
+            line-height: 1.9;
+            overflow-wrap: anywhere;
+        }
+
+        .case-id {
+            color: #1769aa;
+            font-size: 18px;
+        }
+
+        .score {
+            font-weight: bold;
+            color: #17623b;
+        }
+
+        .empty {
+            color: #64748b;
+            padding: 10px 0;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 15px 10px;
+            }
+
+            .card {
+                padding: 17px;
+            }
+
+            .person {
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .person img {
+                width: 90px;
+                height: 110px;
+            }
+
+            input[type="text"] {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <!-- Project heading and upload form -->
+    <div class="card">
+        <h1>Missing Person Identification</h1>
+
+        <p>
+            Upload a clear photo to compare its facial features
+            with the photos stored in the person records.
+        </p>
+
+        <form
+            method="POST"
+            enctype="multipart/form-data"
+        >
+            <p>
+                <input
+                    type="file"
+                    name="image"
+                    accept=".jpg,.jpeg,.png"
+                    required
+                >
+            </p>
+
+            <button type="submit">
+                Upload and Find Match
+            </button>
+        </form>
+
+        {% if message %}
+            <p class="message" role="status">
+                {{ message }}
+            </p>
+        {% endif %}
+
+        <p class="note">
+            This system identifies possible candidates, not confirmed
+            identities. Results depend on photo quality and the
+            configured similarity threshold.
+        </p>
+    </div>
+
+
+    <!-- Best candidate result -->
+    {% if match_result %}
+        <div class="card">
+            <h2>Possible Matching Record</h2>
+
+            <div class="person">
+                <img
+                    src="{{ url_for(
+                        'static',
+                        filename='images/' + match_result['image']
+                    ) }}"
+                    alt="Stored candidate photo"
+                >
+
+                <div class="details">
+                    <strong class="case-id">Case ID:</strong>
+                    {{ match_result["case_id"] }}<br>
+
+                    <strong>Name:</strong>
+                    {{ match_result["name"] }}<br>
+
+                    <strong>Age:</strong>
+                    {{ match_result["age"] }}<br>
+
+                    <strong>Last seen:</strong>
+                    {{ match_result["last_seen"] }}<br>
+
+                    <strong>Cosine similarity score:</strong>
+                    <span class="score">
+                        {{ "%.3f"|format(match_result["score"]) }}
+                    </span>
+                </div>
+            </div>
+
+            <p class="note">
+                This is the highest-scoring candidate above the
+                configured threshold. Independently verify the
+                information before taking any action.
+            </p>
+        </div>
+    {% endif %}
+
+
+    <!-- Search stored records -->
+    <div class="card">
+        <h2>Search Person Records</h2>
+
+        <form method="GET">
+            <p>
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Enter name or Case ID"
+                    value="{{ search }}"
+                >
+
+                <button type="submit">Search Records</button>
+            </p>
+        </form>
+
+        <p class="note">
+            Search the stored records by name or Case ID.
+            The sample records are fictional and intended for testing.
+        </p>
+
+        {% if persons %}
+            {% for person in persons %}
+                <div class="person">
+
+                    {% if person["image"] %}
+                        <img
+                            src="{{ url_for(
+                                'static',
+                                filename='images/' + person['image']
+                            ) }}"
+                            alt="Stored photo for {{ person['name'] }}"
+                        >
+                    {% endif %}
+
+                    <div class="details">
+                        <strong class="case-id">Case ID:</strong>
+                        {{ person["case_id"] }}<br>
+
+                        <strong>Name:</strong>
+                        {{ person["name"] }}<br>
+
+                        <strong>Age:</strong>
+                        {{ person["age"] }}<br>
+
+                        <strong>Last seen:</strong>
+                        {{ person["last_seen"] }}
+                    </div>
+
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">No person records found.</p>
+        {% endif %}
+    </div>
+
+</div>
+</body>
+</html>
